@@ -69,9 +69,10 @@ exports.postProcess = function(results) {
 		text = XRegExp.replace(text, emailRegex, '');
 		text = XRegExp.replace(text, urlRegex, '');
 		text = XRegExp.replace(text, mentionRegex, '');
+		text = XRegExp.replace(text, /([‘’“”])/, '\'');
 		
 		//Match utf8 safe words (letters, numbers, and _)
-		var words = XRegExp.match(text, XRegExp('([\\p{L}\\p{N}_]+)', 'g'));
+		var words = XRegExp.match(text, XRegExp('([\\p{L}\\p{N}_\']+)', 'g'));
 		
 		if (!words) {
 			//No words were found
@@ -82,6 +83,7 @@ exports.postProcess = function(results) {
 		while (word = words.shift()) {
 			//Trim any white space, just in case
 			word = word.trim();
+			word = word.replace(/^[\\'"“”‘]+|[\\'"“”’]+$/g, '');
 			
 			if (0 === word.length) {
 				//Empty word, skip
