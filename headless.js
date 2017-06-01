@@ -10,8 +10,6 @@
 exports.evaluate = function(options) {
 	//using the given nightmare instance
 
-	var fs = require('fs');
-
 	return function(nightmare) {
 		nightmare
 			.inject('js', __dirname+'/text-on-page.js')
@@ -33,40 +31,63 @@ exports.evaluate = function(options) {
 
 exports.postProcess = function(results) {
 
-	var dictionary = require('dictionary-en-us');
-	var nspell = require('nspell');
-	var fs = require('fs');
-	var path = require('path');
+	const XRegExp = require('xregexp');
+	const nspell = require('nspell');
+	const fs = require('fs');
 	
-	var base = path.dirname(require.resolve('dictionary-en-us'));
+	// Load up the english dictionary
+	var enDic = fs.readFileSync(__dirname+'/en_us/en_US-large.dic', 'utf-8');
+	var enAff = fs.readFileSync(__dirname+'/en_us/en_US-large.aff', 'utf-8');
 	
-	// NEVER USE `readFileSync` IN PRODUCTION (This is fine, because there are not other tasks being ran on this process).
-	var enDic = fs.readFileSync(path.join(base, 'index.dic'), 'utf-8');
-	var enAff = fs.readFileSync(path.join(base, 'index.aff'), 'utf-8');
-	
+	//Set up the spell checker with the english dictionary
 	var spell = nspell(enAff, enDic);
+
+	//load the names dictionary
+	spell.personal(fs.readFileSync(__dirname+'/names.dic', 'utf8'));
+	
+	//Load the custom dictionary if it exists
+	var custom_dictionary_path = __dirname+'/custom.dic';
+	if (fs.existsSync(custom_dictionary_path)) {
+		spell.personal(fs.readFileSync(custom_dictionary_path, 'utf8'));;
+	}
 	
 	var newResults = [];
 
+	//Various regex patters to match strings that should be ignored
 	var emailRegex = /(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))/gi;
 	var urlRegex = /((([A-Za-z]{3,9}:(?:\/\/)?)(?:[\-;:&=\+\$,\w]+@)?[A-Za-z0-9\.\-]+|(?:www\.|[\-;:&=\+\$,\w]+@)[A-Za-z0-9\.\-]+)((?:\/[\+~%\/\.\w\-_]*)?\??(?:[\-\+=&;%@\.\w_]*)#?(?:[\.\!\/\\\w]*))?)/gi;
+	var mentionRegex = /\B(@[A-Za-z0-9_-]+)/gi;
 
 	var node, word;
+	
+	//Loop though all of the nodes that were found
 	while (node = results.shift()) {
 		node.errors = [];
 		
 		var text = node.text;
-
-		text = text.replace(emailRegex, '');
-		text = text.replace(urlRegex, '');
+		//Replace these strings that we want to ignore (to reduce false positives)
+		text = XRegExp.replace(text, emailRegex, '');
+		text = XRegExp.replace(text, urlRegex, '');
+		text = XRegExp.replace(text, mentionRegex, '');
 		
-		var words = text.match(/\b(\w+)\b/g);
+		//Match utf8 safe words (letters, numbers, and _)
+		var words = XRegExp.match(text, XRegExp('([\\p{L}\\p{N}_]+)', 'g'));
 		
 		if (!words) {
+			//No words were found
 			continue;
 		}
 		
+		//Loop though all of the words
 		while (word = words.shift()) {
+			//Trim any white space, just in case
+			word = word.trim();
+			
+			if (0 === word.length) {
+				//Empty word, skip
+				continue;
+			}
+			
 			var matches = word.match(/([\d_\.@])/g);
 			
 			if (matches) {
@@ -75,11 +96,17 @@ exports.postProcess = function(results) {
 			}
 			
 			if (word === word.toUpperCase()) {
-				//Most likely an acronym, so skip it
+				//All uppercase, Most likely an acronym, so skip it
 				continue;
 			}
 			
+			if (-1 !== word.slice(1).search(/[A-Z]/)) {
+				//This word contains an upper case letter after the first character. Likely humpCase or something.
+				continue;
+			}
+
 			if (!spell.correct(word)) {
+				//This word is not correct, so add it as an error
 				node.errors.push(word);
 			}
 		}

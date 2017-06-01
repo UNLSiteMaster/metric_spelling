@@ -22,6 +22,10 @@ This metric will try to identify words that are spelled incorrectly. However, su
 * Generate and use a names dictionary based on popular names in the US
 * Errors can be 'overridden' in SiteMaster. If enough sites make a side-wide override for the same word, it will be added to a custom dictionary and ignored across all sites.
 
+## Tests
+
+Run `mocha tests/test.js`
+
 ## sources and credits
 
 * The english dictionary is provided by http://wordlist.sourceforge.net 'Copyright 2000-2015 by Kevin Atkinson'

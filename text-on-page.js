@@ -1,4 +1,8 @@
 window.siteMasterTextOnPage = {
+	/**
+	 * Get the language of an element
+	 * @param element
+	 */
 	getLang: function (element) {
 		while (element.parentNode) {
 			//display, log or do what you want with element
@@ -10,17 +14,26 @@ window.siteMasterTextOnPage = {
 		}
 	},
 
+	/**
+	 * Truncate a given string
+	 * 
+	 * @param str
+	 * @returns {*}
+	 */
 	truncate: function (str) {
-		var maxLength = 400;
-
-		if (str.length > maxLength) {
-			var index = str.indexOf('>');
-			str = str.substring(0, index + 1);
+		if (str.length > 400) {
+			str = str.substring(0, 400) + '...';
 		}
 
 		return str;
 	},
 
+	/**
+	 * Get the HTML source of an element
+	 * 
+	 * @param element
+	 * @returns {*}
+	 */
 	getSource: function (element) {
 		var source = element.outerHTML;
 		if (!source && typeof XMLSerializer === 'function') {
@@ -29,6 +42,10 @@ window.siteMasterTextOnPage = {
 		return this.truncate(source || '');
 	},
 
+	/**
+	 * Get all of the text nodes on a page
+	 * @returns {Array}
+	 */
 	getTextNodes: function () {
 		var walker = document.createTreeWalker(
 			document.body,
@@ -40,23 +57,26 @@ window.siteMasterTextOnPage = {
 		var node;
 		var textNodes = [];
 
-		var blackList = ['STYLE', 'SCRIPT', 'CODE', 'ABBR', 'DATA', 'TIME', 'RUBY', 'RB', 'RT', 'RTC', 'VAR', 'PARAM', 'SOURCE', 'CANVAS', 'TEMPLATE'];
+		//Ignore these elements because they likely contain words that are not in a dictionary
+		var blackList = ['STYLE', 'NOSCRIPT', 'SCRIPT', 'CODE', 'ABBR', 'DATA', 'TIME', 'RUBY', 'RB', 'RT', 'RTC', 'VAR', 'PARAM', 'SOURCE', 'CANVAS', 'TEMPLATE', 'SUP'];
 
+		//Walk over all text nodes
 		while (node = walker.nextNode()) {
 			if (blackList.indexOf(node.parentNode.nodeName) !== -1) {
+				//Not in an element that we support, so skip
 				continue;
 			}
 
 			var lang = this.getLang(node);
 
 			if (typeof lang !== 'undefined' && !lang.startsWith('en')) {
+				//Not a language that we support, so skip
 				continue;
 			}
 
 			var text = node.nodeValue.trim();
 
 			if (text.length) {
-				console.log([node]);
 				var details = {
 					text: text,
 					html: this.getSource(node.parentNode)
@@ -69,6 +89,12 @@ window.siteMasterTextOnPage = {
 		return textNodes;
 	},
 
+	/**
+	 * Get all text that is in attributes that can be be read by AT or via other interactions
+	 * 
+	 * @param attributeName
+	 * @returns {Array}
+	 */
 	getTextInAttribute: function (attributeName) {
 		var results = [];
 		var elements = document.querySelectorAll('*[' + attributeName + ']');
@@ -89,6 +115,10 @@ window.siteMasterTextOnPage = {
 		return results;
 	},
 
+	/**
+	 * Get all text on a page
+	 * @returns {Array}
+	 */
 	getAllText: function () {
 		var results = [];
 

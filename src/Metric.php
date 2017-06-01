@@ -83,8 +83,25 @@ class Metric extends MetricInterface
             throw new RuntimeException('headless results are required for the spelling metric');
         }
         
+        $description = 'This word might be a spelling error. Please either correct it, or create an override for it.';
+        $help_text = 'To fix this error, either correct it and rescan the page, or create an override for it. If enough site-wide overrides are created for this spelling error, it will be added to the dictionary.';
+        $spelling_mark = $this->getMark('spelling_error', 'Spelling Error', 1, $description, $help_text,true);
+
+        foreach ($this->headless_results as $result) {
+            //errors are grouped by blocks of text, so iterate over the block of text
+            foreach ($result['errors'] as $error) {
+                //Now iterate over the errors found in that block of text
+                $page->addMark($spelling_mark, array(
+                    'value_found' => $error,
+                    'context' => $result['html'],
+                ));
+            }
+        }
+        
         return true;
     }
+    
+    
 
 
     /**
@@ -100,5 +117,15 @@ class Metric extends MetricInterface
         }
 
         return null;
+    }
+    
+    public function allowOverridingErrors()
+    {
+        return true;
+    }
+    
+    public function allowGlobalOverrides()
+    {
+        return true;
     }
 }
