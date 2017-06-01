@@ -90,10 +90,19 @@ class Metric extends MetricInterface
         foreach ($this->headless_results as $result) {
             //errors are grouped by blocks of text, so iterate over the block of text
             foreach ($result['errors'] as $error) {
+                $help = '';
+                
+                if (!empty($error['suggestions'])) {
+                    $help .= 'Suggestions: ' . implode(', ',$error['suggestions']) . PHP_EOL . PHP_EOL;
+                }
+                
+                $help .= '[Learn more about why this work was marked as an error](http://app.aspell.net/lookup?dict=en_US-large;words='.urlencode($error['word']).')';
+                
                 //Now iterate over the errors found in that block of text
                 $page->addMark($spelling_mark, array(
-                    'value_found' => $error,
+                    'value_found' => $error['word'],
                     'context' => $result['html'],
+                    'help_text' => $help,
                 ));
             }
         }

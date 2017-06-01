@@ -106,8 +106,12 @@ exports.postProcess = function(results) {
 			}
 
 			if (!spell.correct(word)) {
+				//console.log(word);
 				//This word is not correct, so add it as an error
-				node.errors.push(word);
+				node.errors.push({
+					word: word,
+					suggestions: spell.suggest(word)
+				});
 			}
 		}
 		
