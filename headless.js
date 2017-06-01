@@ -70,6 +70,8 @@ exports.postProcess = function(results) {
 		text = XRegExp.replace(text, urlRegex, '');
 		text = XRegExp.replace(text, mentionRegex, '');
 		text = XRegExp.replace(text, /([‘’“”])/, '\'');
+		//Now, remove any words that have a . in them (unl.edu) for example.
+		text = XRegExp.replace(text, /\b(\w+\.\w+)\b/g, '');
 		
 		//Match utf8 safe words (letters, numbers, and _)
 		var words = XRegExp.match(text, XRegExp('([\\p{L}\\p{N}_\']+)', 'g'));

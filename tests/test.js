@@ -9,14 +9,14 @@ var testResults = [
 	},
 	{
 		'html': 'test',
-		'text': 'this text includes some words not words. http://www.google.com http://www.facebook.com one@gmail.com two@gmail.com mfairchild365 11 11+2 1 + 1 / 2 <test> something [test] (another word) speeeeel a b c d 1 2 3 4 + @ I II XII UNL entreé 💩💩💩 jalapeño jalapaño doesn\'t doesn’t \'the\''
+		'text': 'this text includes some words not words. http://www.google.com http://www.facebook.com one@gmail.com two@gmail.com mfairchild365 11 11+2 1 + 1 / 2 <test> something [test] (another word) speeeeel a b c d 1 2 3 4 + @ I II XII UNL entreé 💩💩💩 jalapeño jalapaño doesn\'t doesn’t \'the\' unl.edu'
 	}
 ];
 
 var expectedResults = [
 	{
 		'html': 'test',
-		'text': 'this text includes some words not words. http://www.google.com http://www.facebook.com one@gmail.com two@gmail.com mfairchild365 11 11+2 1 + 1 / 2 <test> something [test] (another word) speeeeel a b c d 1 2 3 4 + @ I II XII UNL entreé 💩💩💩 jalapeño jalapaño doesn\'t doesn’t \'the\'',
+		'text': 'this text includes some words not words. http://www.google.com http://www.facebook.com one@gmail.com two@gmail.com mfairchild365 11 11+2 1 + 1 / 2 <test> something [test] (another word) speeeeel a b c d 1 2 3 4 + @ I II XII UNL entreé 💩💩💩 jalapeño jalapaño doesn\'t doesn’t \'the\' unl.edu',
 		'errors': [
 			{
 				word: 'speeeeel',
