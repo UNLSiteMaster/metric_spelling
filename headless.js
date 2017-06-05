@@ -69,7 +69,7 @@ exports.postProcess = function(results) {
 		text = XRegExp.replace(text, emailRegex, '');
 		text = XRegExp.replace(text, urlRegex, '');
 		text = XRegExp.replace(text, mentionRegex, '');
-		text = XRegExp.replace(text, /([‘’“”])/, '\'');
+		text = XRegExp.replace(text, /([‘’“”])/g, '\'');
 		//Now, remove any words that have a . in them (unl.edu) for example.
 		text = XRegExp.replace(text, /\b(\w+\.\w+)\b/g, '');
 		
