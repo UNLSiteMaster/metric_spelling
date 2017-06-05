@@ -1,16 +1,19 @@
 <?php
 namespace SiteMaster\Plugins\Metric_spelling;
 
-use HtmlValidator\Validator;
+use Monolog\Logger;
 use SiteMaster\Core\Auditor\Logger\Metrics;
+use SiteMaster\Core\Auditor\Metric\Mark;
 use SiteMaster\Core\Auditor\MetricInterface;
-use SiteMaster\Core\Registry\Site;
-use SiteMaster\Core\Auditor\Scan;
+use SiteMaster\Core\Auditor\Override;
 use SiteMaster\Core\Auditor\Site\Page;
 use SiteMaster\Core\RuntimeException;
+use SiteMaster\Core\Util;
 
 class Metric extends MetricInterface
 {
+    const WORDNIK_API_ERROR = 'api_error';
+    
     /**
      * @param string $plugin_name
      * @param array $options
@@ -19,11 +22,33 @@ class Metric extends MetricInterface
     {
         $options = array_replace_recursive([
             'help_text' => [],
+            'wordnik_api_key' => false,
+            'wordnik_api_curl_opts' => [],
         ], $options);
-
-
-
+        
         parent::__construct($plugin_name, $options);
+    }
+    
+    public function getSpellingMarkID()
+    {
+        static $id;
+        
+        if (null !== $id) {
+            return $id;
+        }
+        
+        //Get the spelling mark ID (used during auditing)
+        $metric_id = $this->getMetricRecord()->id;
+        if (!$marks_id = Mark::getByMachineNameAndMetricID('spelling_error', $metric_id)->id) {
+            //The mark hasn't been created before, so lets set it up
+            $mark = $this->getMark('spelling_error', 'Spelling Error', 1, '', '',true);
+            $marks_id = $mark->id;
+        }
+        
+        //Save it statically
+        $id = $marks_id;
+        
+        return $id;
     }
 
     /**
@@ -84,19 +109,39 @@ class Metric extends MetricInterface
         }
         
         $description = 'This word might be a spelling error. Please either correct it, or create an override for it.';
-        $help_text = 'To fix this error, either correct it and rescan the page, or create an override for it. If enough site-wide overrides are created for this spelling error, it will be added to the dictionary.';
+        $help_text = 'To fix this error, either correct it and rescan the page, or create an override for it. If enough site-wide overrides are created for this spelling error, it will be added to the custom dictionary.';
         $spelling_mark = $this->getMark('spelling_error', 'Spelling Error', 1, $description, $help_text,true);
 
         foreach ($this->headless_results as $result) {
             //errors are grouped by blocks of text, so iterate over the block of text
             foreach ($result['errors'] as $error) {
+                
+                $variants = [];
+                $variants[] = $error['word'];
+                if (strtolower($error['word']) !== $error['word']) {
+                    //Also try lowercase
+                    $variants[] = strtolower($error['word']);
+                }
+                
+                $is_okay = false;
+                foreach ($variants as $variant) {
+                    if ($this->isFoundOnWordNik($variant)) {
+                        //found on wordnik, so break out
+                        $is_okay = true;
+                        break;
+                    }
+                }
+                
+                if ($is_okay) {
+                    //nothing else to do here
+                    continue;
+                }
+                
                 $help = '';
                 
                 if (!empty($error['suggestions'])) {
                     $help .= 'Suggestions: ' . implode(', ',$error['suggestions']) . PHP_EOL . PHP_EOL;
                 }
-                
-                $help .= '[Learn more about why this work was marked as an error](http://app.aspell.net/lookup?dict=en_US-large;words='.urlencode($error['word']).')';
                 
                 //Now iterate over the errors found in that block of text
                 $page->addMark($spelling_mark, array(
@@ -109,8 +154,88 @@ class Metric extends MetricInterface
         
         return true;
     }
+
+    /**
+     * @param $word
+     * @return bool
+     */
+    public function isFoundOnWordNik($word)
+    {
+        if ($result = WordNikCache::getByWord($word)) {
+            //Was already checked by wordnik (to reduce the number of calls to the API)
+            return $result->isOkay();
+        }
+        
+        //Perform a wordnik check
+        $result = $this->performWorkNikAPICall($word);
+        
+        if (true === $result) {
+            $marks_id = $this->getSpellingMarkID();
+            //Store in cache
+            WordNikCache::createNewRecord($word, WordNikCache::RESULT_OKAY);
+            
+            //Create a site wide override so that the word is added to the custom dictionary
+            Override::createGlobalOverride($marks_id, $word, 'found via the wordnik api');
+            
+            return true;
+        } else if (false === $result) {
+            //This means that there was actually an error
+            WordNikCache::createNewRecord($word, WordNikCache::RESULT_ERROR);
+        } else {
+            //API Error (error connecting, timeout, or something else).
+            //Silent for now
+        }
+        
+        return false;
+    }
     
-    
+    protected function performWorkNikAPICall($word)
+    {
+        if (!$this->options['wordnik_api_key']) {
+            //Skip if there is not api key
+            return self::WORDNIK_API_ERROR; 
+        }
+        
+        $url = 'http://api.wordnik.com:80/v4/word.json/'.urlencode($word).'/definitions?limit=1&includeRelated=false&useCanonical=false&includeTags=false&api_key='.urlencode($this->options['wordnik_api_key']);
+        
+        //If found add a global override
+        $curl = curl_init($url);
+
+        $default_options = array(
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_TIMEOUT        => 5,
+            CURLOPT_USERAGENT      => 'UNL_SITEMASTER/1.0',
+            CURLOPT_RETURNTRANSFER => true,
+        );
+
+        $options = $this->options['wordnik_api_curl_opts'] + $default_options;
+
+        curl_setopt_array($curl, $options);
+
+        if (!$result = curl_exec($curl)) {
+            Util::log(Logger::NOTICE, 'Wordnik api call failed to exec', array(
+                'uri' => $url
+            ));
+            return self::WORDNIK_API_ERROR;
+        }
+
+        curl_close($curl);
+
+        $result = json_decode($result);
+
+        if (false === $result) {
+            Util::log(Logger::NOTICE, 'Wordnik api call failed. Invalid JSON', array(
+                'uri' => $url
+            ));
+            return self::WORDNIK_API_ERROR;
+        }
+        
+        if (count($result) === 0) {
+            return false;
+        }
+        
+        return true;
+    }
 
 
     /**
