@@ -58,7 +58,7 @@ class Metric extends MetricInterface
      */
     public function getName()
     {
-        return 'spelling';
+        return 'Spelling (beta)';
     }
 
     /**
