@@ -64,6 +64,10 @@ exports.postProcess = function(results) {
 	while (node = results.shift()) {
 		node.errors = [];
 		
+		//Replace ligatures with ASCII
+		node.text = exports.replaceLigatures(node.text);
+		
+		//Now, ignore certain patterns
 		var text = node.text;
 		//Replace these strings that we want to ignore (to reduce false positives)
 		text = XRegExp.replace(text, emailRegex, '');
@@ -127,4 +131,121 @@ exports.postProcess = function(results) {
 	}
 
 	return newResults;
+};
+
+
+exports.replaceLigatures = function(text) {
+	//based on this list https://en.wikipedia.org/wiki/Typographic_ligature
+	var map = [
+		{
+			'text': 'AA',
+			'match': /(\uA732)/g
+		},
+		{
+			'text': 'aa',
+			'match': /(\uA733)/g
+		},
+		{
+			'text': 'AE',
+			'match': /(\u00C6)/g
+		},
+		{
+			'text': 'ae',
+			'match': /(\u00E6)/g
+		},
+		{
+			'text': 'AO',
+			'match': /(\uA734)/g
+		},
+		{
+			'text': 'ao',
+			'match': /(\uA735)/g
+		},
+		{
+			'text': 'AU',
+			'match': /(\uA736)/g
+		},
+		{
+			'text': 'au',
+			'match': /(\uA737)/g
+		},
+		{
+			'text': 'AV',
+			'match': /(\uA738)/g
+		},
+		{
+			'text': 'av',
+			'match': /(\uA739)/g
+		},
+		{
+			'text': 'AY',
+			'match': /(\uA73C)/g
+		},
+		{
+			'text': 'ay',
+			'match': /(\uA73D)/g
+		},
+		{
+			'text': 'ff',
+			'match': /(\uFB00)/g
+		},
+		{
+			'text': 'ffi',
+			'match': /(\uFB03)/g
+		},
+		{
+			'text': 'ffl',
+			'match': /(\uFB04)/g
+		},
+		{
+			'text': 'fi',
+			'match': /(\uFB01)/g
+		},
+		{
+			'text': 'fl',
+			'match': /(\uFB02)/g
+		},
+		{
+			'text': 'OE',
+			'match': /(\u0152)/g
+		},
+		{
+			'text': 'oe',
+			'match': /(\u0153)/g
+		},
+		{
+			'text': 'OO',
+			'match': /(\uA74E)/g
+		},
+		{
+			'text': 'oo',
+			'match': /(\uA74F)/g
+		},
+		{
+			'text': 'st',
+			'match': /(\uFB06)/g
+		},
+		{
+			'text': 'ft',
+			'match': /(\uFB05)/g
+		},
+		{
+			'text': 'ue',
+			'match': /(\u1D6B)/g
+		},
+		{
+			'text': 'VY',
+			'match': /(\uA760)/g
+		},
+		{
+			'text': 'vy',
+			'match': /(\uA761)/g
+		}
+	];
+
+	for(var i=0; i<map.length; i++) {
+		text = text.replace(map[i].match, map[i].text);
+	}
+	
+	return text;
 };
