@@ -1,9 +1,23 @@
 window.siteMasterTextOnPage = {
 	/**
 	 * Get the language of an element
-	 * @param element
+	 * @param textNode or element
 	 */
-	getLang: function (element) {
+	getLang: function (textNode) {
+		var element;
+
+		if (textNode.nodeType === 3) {
+			//this is a text node
+			element = textNode.parentNode;
+		} else {
+			element = textNode;
+		}
+
+		//Check the current element
+		if (element.lang) {
+			return element.lang;
+		}
+		
 		while (element.parentNode) {
 			//display, log or do what you want with element
 			element = element.parentNode;
@@ -14,6 +28,45 @@ window.siteMasterTextOnPage = {
 		}
 	},
 
+	/**
+	 *
+	 * @param textNode or element
+	 * @returns {boolean}
+	 */
+	isIgnoredByAttribute: function(textNode) {
+		var element;
+		
+		if (textNode.nodeType === 3) {
+			//this is a text node
+			element = textNode.parentNode;
+		} else {
+			element = textNode;
+		}
+		
+		
+		const attribute = 'data-sitemaster-ignore-spelling';
+
+		//Check the current element
+		if (element.hasAttribute(attribute)) {
+			return true;
+		}
+
+		while (element.parentNode) {
+			//display, log or do what you want with element
+			element = element.parentNode;
+			
+			if (element.nodeType === 9) {
+				//We reached the document node
+				return false;
+			}
+			
+			if (element.hasAttribute(attribute)) {
+				return true;
+			}
+		}
+
+		return false;
+	},
 	/**
 	 * Truncate a given string
 	 * 
@@ -79,6 +132,7 @@ window.siteMasterTextOnPage = {
 			if (text.length) {
 				var details = {
 					text: text,
+					isIgnoredByAttribute: this.isIgnoredByAttribute(node),
 					html: this.getSource(node.parentNode)
 				};
 
@@ -109,7 +163,8 @@ window.siteMasterTextOnPage = {
 
 			results.push({
 				'text': text,
-				html: this.getSource(elements[i])
+				html: this.getSource(elements[i]),
+				isIgnoredByAttribute: this.isIgnoredByAttribute(elements[i])
 			});
 		}
 		return results;

@@ -113,6 +113,22 @@ class Metric extends MetricInterface
         $spelling_mark = $this->getMark('spelling_error', 'Spelling Error', 1, $description, $help_text,true);
 
         foreach ($this->headless_results as $result) {
+            
+            if ($result['isIgnoredByAttribute']) {
+                $ignored_mark = $this->getMark(
+                    'spelling_ignored',
+                    'Text was ignored', 
+                    0,
+                    'Content can be ignored by adding a `data-sitemaster-ignore-spelling` attribute. This is usually done to suppress temporary filler text and example content.', 
+                    'Please verify that the content should be ignored.'
+                );
+                $page->addMark($ignored_mark, array(
+                    'value_found' => $result['text'],
+                    'context' => $result['html']
+                ));
+                continue;
+            }
+            
             //errors are grouped by blocks of text, so iterate over the block of text
             foreach ($result['errors'] as $error) {
                 
