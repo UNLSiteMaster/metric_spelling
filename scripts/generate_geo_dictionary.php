@@ -24,8 +24,6 @@ $dictionary = [];
  */
 function addLocation($name, &$dictionary) {
     //Grab all unicode words (3 or more characters)
-    
-    
     preg_match_all(
         '/[\w\']{3,}/u',
         $name,
@@ -67,6 +65,7 @@ while ($results_found < $total_result_count || $results_found == 0) {
     $results_found += 1000;
     $iterations++;
     if ($iterations > 4) {
+        //A silly safety net in case something weird happens with the API
         echo 'uhhhh.... something broke';
         break;
     }
