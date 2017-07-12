@@ -1,0 +1,5 @@
+{
+    "require": {
+        "menarasolutions/geographer": "^0.3.3"
+    }
+}

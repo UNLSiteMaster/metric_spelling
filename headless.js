@@ -44,6 +44,9 @@ exports.postProcess = function(results) {
 
 	//load the names dictionary
 	spell.personal(fs.readFileSync(__dirname+'/names.dic', 'utf8'));
+
+	//load the geo names dictionary
+	spell.personal(fs.readFileSync(__dirname+'/geo.dic', 'utf8'));
 	
 	//Load the custom dictionary if it exists
 	var custom_dictionary_path = __dirname+'/custom.dic';
