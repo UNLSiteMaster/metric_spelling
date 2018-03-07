@@ -41,7 +41,7 @@ class Metric extends MetricInterface
         $metric_id = $this->getMetricRecord()->id;
         if (!$marks_id = Mark::getByMachineNameAndMetricID('spelling_error', $metric_id)->id) {
             //The mark hasn't been created before, so lets set it up
-            $mark = $this->getMark('spelling_error', 'Spelling Error', 1, '', '',true);
+            $mark = $this->getMark('spelling_error', 'Spelling Error', 0, '', '',true);
             $marks_id = $mark->id;
         }
         
@@ -110,7 +110,7 @@ class Metric extends MetricInterface
         
         $description = 'This word might be a spelling error. Please either correct it, or create an override for it.';
         $help_text = 'To fix this error, either correct it and rescan the page, or create an override for it. If enough site-wide overrides are created for this spelling error, it will be added to the custom dictionary.';
-        $spelling_mark = $this->getMark('spelling_error', 'Spelling Error', 1, $description, $help_text,true);
+        $spelling_mark = $this->getMark('spelling_error', 'Spelling Error', 0, $description, $help_text,true);
 
         foreach ($this->headless_results as $result) {
             
