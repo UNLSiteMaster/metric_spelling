@@ -246,7 +246,7 @@ class Metric extends MetricInterface
             return self::WORDNIK_API_ERROR;
         }
         
-        if (count($result) === 0) {
+        if (!is_array($result) || count($result) === 0) {
             return false;
         }
         
