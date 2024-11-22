@@ -122,7 +122,7 @@ window.siteMasterTextOnPage = {
 
 			var lang = this.getLang(node);
 
-			if (typeof lang !== 'undefined' && !lang.startsWith('en')) {
+			if (typeof lang !== 'undefined' && !String(lang).startsWith('en')) {
 				//Not a language that we support, so skip
 				continue;
 			}
